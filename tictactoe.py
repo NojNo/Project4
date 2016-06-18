@@ -5,9 +5,9 @@ from protorpc import remote, messages, message_types
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 
-from models import Player, StringMessage, Game, Score
+from models import Player, StringMessage, Game#, Score
 from models import NewGameForm, GameForm, MakeMoveForm, \
-GameForms, GameForm2, ScoreForm, ScoreForms
+GameForms, GameForm2#, ScoreForm, ScoreForms
 
 from utils import get_by_urlsafe, win_checker
 
@@ -167,19 +167,19 @@ class tictactoeAPI(remote.Service):
         else:
           raise endpoints.NotFoundException('Game not found! Cannot be deleted!')
 
-    @endpoints.method(request_message=GET_USER_REQUEST,
+    """@endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=ScoreForms,
                       path='scores/player/{user_name}',
                       name='get_user_scores',
                       http_method='GET')
     def get_user_scores(self, request):
-        """Returns all of an individual User's scores"""
+        Returns all of an individual User's scores
         player = Player.query(Player.name == request.user_name).get()
         if not player:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
         scores = Score.query(Score.player == player.key)
-        return ScoreForms(items=[score.to_form() for score in scores])
+        return ScoreForms(items=[score.to_form() for score in scores])"""
 
     @endpoints.method(response_message=StringMessage,
                       path='games/incomplete_games',
