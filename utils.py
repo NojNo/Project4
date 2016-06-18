@@ -44,8 +44,8 @@ def win_checker(player, still_available, winning_list):
      in the dictionary winning_list"""
     for w_list in winning_list:
         moves_player_compared = set(winning_list[w_list]).intersection(player)
-        if len(moves_player_compared) ==2:
-            if len(moves_player_compared) ==2:
+        if len(moves_player_compared)==3:
+            if len(moves_player_compared)==3:
                 return "Player is the champ!"
         else:
             if still_available == 9:
