@@ -48,9 +48,21 @@ def win_checker(player, still_available, winning_list):
             if len(moves_player_compared)==3:
                 return "Player is the champ!"
         else:
-            if still_available == 9:
+            if still_available==9:
                 return "Tie game"
             else:
                 still_to_go = 9-still_available
-                return "Still %s moves left" % still_to_go
+                return "Still %s moves left" % moves_player_compared
 
+def win_checker_test(player):
+    """checks if the positions in the list player match with one of the lists
+     in the dictionary winning_list"""
+    winning_list = {"win1": [1,2,3], "win2": [1,5,9], "win3": [1,4,7], 
+                    "win4": [2,5,8], "win5": [3,5,7], "win6": [3,6,9],
+                    "win7": [4,5,6], "win3": [7,8,9]}
+    for w_list in winning_list:
+        moves_player_compared = set(winning_list[w_list]).intersection(player)
+        if len(moves_player_compared)==3:
+            if len(moves_player_compared)==3:
+                return "Player is the champ!"
+        return "Still %s moves left" % moves_player_compared

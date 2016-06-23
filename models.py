@@ -74,17 +74,18 @@ class Game(ndb.Model):
         form.moves = self.moves
         return form
 
-    def end_of_game1(self, won=False):
-        self.winner1 = True
+    def end_of_game(self, player1=False, player2=False):
+        self.winner1 = player1
+        self.winner2 = player2
         self.put()
-        score = Score(player=self.player1.get().name, date=str(self.date))
-        score.put()
+        """score = Score(player=self.player1.get().name, date=str(self.date))
+        score.put()"""
 
 
-    def end_of_game2(self, won=False):
+    """def end_of_game2(self, won=False):
         self.winner2 = True
         self.put()
-        """score = Score(player=self.player2.get().name, won=self.won,
+        score = Score(player=self.player2.get().name, won=self.won,
                       date=str(self.date))
         score.put()"""
 
@@ -126,8 +127,8 @@ class GameForms(messages.Message):
     items = messages.MessageField(GameForm2, 1, repeated = True)
 
 
-class Score(ndb.Model):
-    """Score object"""
+"""class Score(ndb.Model):
+    Score object
     player = ndb.KeyProperty(required=True, kind='Player')
     date = ndb.DateProperty(required=True)
 
@@ -135,12 +136,12 @@ class Score(ndb.Model):
         return ScoreForm(player=self.user.get().name, date=str(self.date))
 
 class ScoreForm(messages.Message):
-    """ScoreForm for outbound Score information"""
+    ScoreForm for outbound Score information
     player = messages.StringField(1, required=True)
     date = messages.StringField(2, required=True)
 
 class ScoreForms(messages.Message):
-    """Return multiple ScoreForms"""
+    Return multiple ScoreForms
     items = messages.MessageField(ScoreForm, 1, repeated=True)
    # player2_position = messages.MessageField(2, repeated=True)
-   # moves = messages.MessageField(3, repeated=True)
+   # moves = messages.MessageField(3, repeated=True)"""

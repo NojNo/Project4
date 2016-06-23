@@ -9,7 +9,7 @@ from models import Player, StringMessage, Game#, Score
 from models import NewGameForm, GameForm, MakeMoveForm, \
 GameForms, GameForm2#, ScoreForm, ScoreForms
 
-from utils import get_by_urlsafe, win_checker
+from utils import get_by_urlsafe, win_checker, win_checker_test
 
 #ResourceContainer
 # If the request contains path or querystring arguments, you need to use ResourceContainer
@@ -48,9 +48,9 @@ class tictactoeAPI(remote.Service):
             raise endpoints.ConflictException(
                     'A User with that name already exists in the DB! You do not need\
                     to create a new one')
-        user = Player(name=request.user_name, email=request.email)
-        user.put()
-        return StringMessage(message='User {} created!'.format(
+        player = Player(name=request.user_name, email=request.email)
+        player.put()
+        return StringMessage(message='Player {} created!'.format(
                 request.user_name))
         """Old mit  prozent '%(d %(d' % (1, 2) --> ohne ( bei d
            New '{} {}'.format(1, 2)
@@ -83,6 +83,8 @@ class tictactoeAPI(remote.Service):
         """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
+            if not game.winner1 == True or game.winner2 == True or len(game.moves) ==9:
+              taskqueue.add(url='/tasks/cache_incomplete_games')
             return game.to_form('Here we go. The history of the game')
         else:
             raise endpoints.NotFoundException('Game not found!')
@@ -102,10 +104,10 @@ class tictactoeAPI(remote.Service):
         else:
             position = request.position
             if position<10 and position>0:
-              winning_list = {"win1": [1,2,3], "win2": [1,5,9], "win3": [1,4,7], 
-                              "win4": [2,5,8], "win5": [3,5,7], "win6": [3,6,9],
-                              "win7": [4,5,6], "win3": [7,8,9]}
               if position not in game.moves:
+                winning_list = {"win1": [1,2,3], "win2": [1,5,9], "win3": [1,4,7], 
+                                "win4": [2,5,8], "win5": [3,5,7], "win6": [3,6,9],
+                                "win7": [4,5,6], "win3": [7,8,9]}
                 i = len(game.moves)
                 if i%2==0:
                     game.player1_position.append(position)
@@ -115,7 +117,7 @@ class tictactoeAPI(remote.Service):
                     still_available = len(game.moves)
                     check = win_checker(game.player1_position, still_available, winning_list)
                     if check == "Player is the champ!":
-                      game.end_of_game1(True)
+                      game.end_of_game(True,False)
                       return game.to_form("Player1 is the best")
                     else:
                       return game.to_form(check)
@@ -127,7 +129,7 @@ class tictactoeAPI(remote.Service):
                     still_available = len(game.moves)
                     check = win_checker(game.player2_position, still_available, winning_list)
                     if check == "Player is the champ!":
-                      game.end_of_game2(True)
+                      game.end_of_game(False,True)
                       return game.to_form("Player2 is the best")
                     else:
                       return game.to_form(check)
@@ -135,6 +137,48 @@ class tictactoeAPI(remote.Service):
                 raise endpoints.BadRequestException("Position is already taken")
             else:
               raise endpoints.BadRequestException("Position must be between 1 to 9")
+
+    @endpoints.method(request_message=MAKE_MOVE_REQUEST,
+                      response_message=StringMessage,
+                      path='game/test',
+                      name='test',
+                      http_method='PUT')
+    def test(self, request):
+        """Makes a move. Returns a game state with message"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game.winner1:
+            return game.to_form('Game already over!')
+        if game.winner2:
+            return game.to_form('Game already over!')
+        else:
+            position = request.position
+            if position<10 and position>0:
+              if position not in game.moves:
+                i = len(game.moves)
+                if i%2==0:
+                    game.player1_position.append(position)
+                    game.moves.append(position)
+                    game.available_positions[position-1] = 0
+                    game.put()
+                    still_available = len(game.moves)
+                    check = win_checker_test(game.player1_position)
+                    check2 = win_checker_test(game.player2_position)
+                    return StringMessage(message='bla bla bla player1_position {} player2_position {} still_available {} check_if_player1_won {} check_if_player1_won {} created! Moves {}'.format(game.player1_position, game.player2_position, still_available, check, check2, game.moves))
+
+                else:
+                    game.player2_position.append(position)
+                    game.moves.append(position)
+                    game.available_positions[position-1] = 0
+                    game.put()
+                    still_available = len(game.moves)
+                    check = win_checker_test(game.player1_position)
+                    check2 = win_checker_test(game.player2_position)
+                    return StringMessage(message='player1_position {} player2_position {} still_available {} check_if_player1_won {} check_if_player1_won {} created! Moves {}'.format(game.player1_position, game.player2_position, still_available, check, check2, game.moves))
+              else:
+                raise endpoints.BadRequestException("Position is already taken")
+            else:
+              raise endpoints.BadRequestException("Position must be between 1 to 9")
+
 
     @endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=GameForms,
@@ -198,17 +242,20 @@ class tictactoeAPI(remote.Service):
         """Populates memcache with the incomplete Games"""
         games = Game.query(ndb.OR(Game.winner1 == False,
                                   Game.winner2 == False)).fetch()
+        # returns a list of games
         if games:
-          if len(games.moves)<9:
-            if len(games.player1_position)>len(games.player2_position):
-              announcement = 'It is {} turn.'.format(games.winner2)
-              memcache.set(MEMCACHE_MOVES_REMAINING, announcement)
+          for game in games:
+            if len(game.moves)<9:
+              if len(game.player1_position)>len(game.player2_position):
+                announcement = 'It is {} turn.'.format(game.player1.get().name) 
+                #game.player1 returns (Player, somekey) - we need the name form the instance in Player
+                memcache.set(MEMCACHE_MOVES_REMAINING, announcement)
+              else:
+                announcement = 'It is {} turn.'.format(game.player2.get().name)
+                memcache.set(MEMCACHE_MOVES_REMAINING, announcement)
             else:
-              announcement = 'It is {} turn.'.format(games.winner1)
-              memcache.set(MEMCACHE_MOVES_REMAINING, announcement)
-          else:
-              announcement = "Game is tied"
-              memcache.delete(MEMCACHE_ANNOUNCEMENTS_KEY)
+                announcement = "Game is tied"
+                memcache.delete(MEMCACHE_ANNOUNCEMENTS_KEY)
         else:
           announcement = ""
           memcache.delete(MEMCACHE_ANNOUNCEMENTS_KEY)
