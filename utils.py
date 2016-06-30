@@ -4,18 +4,19 @@ import logging
 from google.appengine.ext import ndb
 import endpoints
 
-"""urlsafe = use an entity's key to obtain an encoded string suitable for 
+"""urlsafe = use an entity's key to obtain an encoded string suitable for
 embedding in a URL.
-This produces a result like agVoZWxsb3IPCxIHQWNjb3VudBiZiwIM which can later be 
+This produces a result like agVoZWxsb3IPCxIHQWNjb3VudBiZiwIM which can later be
 used to reconstruct the key and retrieve the original entity. NOT encrypted!!!!
-Check out 
+Check out
 https://cloud.google.com/appengine/docs/python/ndb/
 creating-entities#Python_retrieving_entities"""
+
 
 # urlsafe: A urlsafe key string from GET_GAME_REQUEST
 # model: The expected entity kind from models.py
 def get_by_urlsafe(urlsafe, model):
-    """Checks with the help of the key that the type of ndb.Model entity 
+    """Checks with the help of the key that the type of ndb.Model entity
     returned is of the correct kind.
     if the key String is malformed or the entity is of the incorrect
     kind return error"""
@@ -31,26 +32,20 @@ def get_by_urlsafe(urlsafe, model):
             raise endpoints.BadRequestException('Invalid Key')
         else:
             raise
-
     entity = key.get()
     if not entity:
-        return None # no entity available
+        return None
+        # no entity available
     if not isinstance(entity, model):
-        raise ValueError('Incorrect Kind') # wrong kind
+        raise ValueError('Incorrect Kind')
+        # wrong kind
     return entity
+    # correct kind
 
-def win_checker(player, still_available, winning_list):
-    """checks if the positions in the list player match with one of the lists
-     in the dictionary winning_list"""
-    for w_list in winning_list:
-        moves_player_compared = set(winning_list[w_list]).intersection(player)
-        if len(moves_player_compared)==3:
-            if len(moves_player_compared)==3:
-                return "Player is the champ!"
-        else:
-            if still_available == 9:
-                return "Tie game"
-            else:
-                still_to_go = 9-still_available
-                return "Still %s moves left" % still_to_go
 
+def win_checker(win):
+    """checks if the user is a winner of not"""
+    if set(win)==set([1,2,3]) or set(win)==set([1,5,9]) or set(win)==set([1,4,7]) or set(win)==set([2,5,8]) or set(win)==set([3,5,7]) or set(win)==set([3,6,9]) or set(win)==set([4,5,6]) or set(win)==set([7,8,9]):
+        return "Player is the champ!"
+    else:
+        return "Your current positions: {}!".format(win)
