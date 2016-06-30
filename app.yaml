@@ -1,10 +1,14 @@
+# This file specifies application's runtime configuration
+# https://developers.google.com/appengine/docs/python/config/appconfig
+
 application: poised-space-127410
 version: 1
 runtime: python27
 api_version: 1
 threadsafe: yes
 
-handlers:       # static then dynamic
+# Handlers tell App Engine how to route requests to your application.
+handlers:     
 - url: /favicon\.ico
   static_files: favicon.ico
   upload: favicon\.ico
@@ -13,12 +17,18 @@ handlers:       # static then dynamic
   script: tictactoe.api
   secure: always
 
-- url: /crons/cache_incomplete_games
+- url: /tasks/cache_incomplete_games
+  script: main.app
+
+# is the handler for Memcache and cron jon
+- url: /crons/send_reminder
   script: main.app
   login: admin
 
-libraries:
 
+# list of 3rd party libraries 
+# https://developers.google.com/appengine/docs/python/tools/libraries27
+libraries:
 - name: webapp2
   version: latest
 
