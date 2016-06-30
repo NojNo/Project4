@@ -81,17 +81,17 @@ Which Endpoints are in tictactoe.py?
     - As soon as the position is placed by e.g. player1, the code checks if the list of player1_position matches any of the Tic Tac Toe winning combinations.
       If there is a match, the Property of winner1 is set to True. Parallely, the Score is updated (and can be viewed via **get_user_wins**)
     - as there is also the possibility of tie the following might happen: If the game has no winner, no setting is set to True which also means, no score is improved and no ranking position is changed. However, the game ends after 9 positions are placed.
-- **get_user_games**
+ - **get_user_games**
     - takes in a user name and, if there is a match in the database, returns a list of all relevant information for each game in which the user has participated
-- **cancel_game**
+ - **cancel_game**
     - if the urlsafe key is correct and the game is unfinished, you can delete the game from here
-- **get_users_wins**
+ - **get_users_wins**
     - if player is in the database, all wins of a player are returned
     - besides: By calling this endpoint, the player´s win count in the
      Ranking becomes updated
-- **get_user_rankings**
+ - **get_user_rankings**
     - the Ranking is returned. The player with the most wins is on the top with his name and the number of wins.
-- **incomplete_games**
+ - **incomplete_games**
     - returns the information from Memcache (which is: incomplete games)
 
 Bugs and feature requests
