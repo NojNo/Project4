@@ -1,0 +1,15 @@
+•	The entity class Game has one more player property (as TicTacToe is a 2 player game) than Guess a Number
+•	Now there can be either player1/ player2 a winner or there can be a tie. 
+•	winner1 and winner2 contain Boolean values and are also by default set to False. These properties represent if one of the 2 players is a winner
+•	The field of a usual TicTacToe game are reflected here has the numbers from 1-9 in a list. All available positions are saved in available_positions. If a user decides to place his mark on a position, this position becomes unavailable plus its value will change to 0
+•	player1_positions and player2_positions contain all the positions that each of the players has used before. 
+•	At a later point in tictactoe.py we use the list of the player1_positions or player2_positions as the input in the win_checker method of utils.py.
+	o	if the list with all the player´s positions matches the if statement (which contains all possible ways to win Tic Tac Toe) this specific game has a winner. Either winner1 (if player1 wins) or winner2 (if player2 wins) will be set to True.
+		-	If this is the case the Score will be increased
+		-	If there is a winner and the Score is increased the user can enable to be ranked by using the get_user_wins where she can also see the sum of her wins. By calling this endpoint the Ranking becomes updated with the best player on the top
+		-       Best in this context means, the user has the most wins (of all players who enabled to be ranked)
+	o	Besides the list of each player´s positions help to document which positions were taken by whom
+•	the moves property is keeping track of all moves made during a game. This helps to keep track of which moves have already been made.
+•	From my perspective the most difficult part in this project is to avoid repeating oneself. Specially, if I have 2 properties which contain similar information but actually have completely different meanings. Eg. player1_position and player2_position (similar information= the position which is used by each player. Meaning = in the ideal case one of the player_positions has a combination of numbers/positions that causes one player to win and the other to lose). It is really difficult for me to see that both are always updated, ready to be used (e.g. in a response) and, if in use, that they are used properly in the tictactoe.py file.
+
+
