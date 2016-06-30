@@ -16,3 +16,14 @@ indexes:
   - name: player2
   - name: winner1
   - name: winner2
+
+- kind: Score
+  properties:
+  - name: player1
+  - name: player2
+  - name: player1
+
+- kind: Score
+  properties:
+  - name: player2
+  - name: player1
