@@ -1,0 +1,7 @@
+# config. file for cron jobs for further infos check
+# https://cloud.google.com/appengine/docs/python/config/cron
+
+cron:
+- description: Send a reminder to users if the game is not finished
+  url: /crons/send_reminder
+  schedule: every 36 hours
