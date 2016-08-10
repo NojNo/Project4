@@ -1,23 +1,34 @@
 import endpoints
-import logging
 from google.appengine.ext import ndb
-from protorpc import remote, messages, message_types
+from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
-from models import Player, Game, Score, Ranking
-from models import StringMessage, NewGameForm, GameForm, MakeMoveForm, \
-                   GameForms, GameForm2, RankingForm, RankingForms
+from models import (Player,
+                    Game,
+                    Score,
+                    Ranking)
+
+from models import (StringMessage,
+                    NewGameForm,
+                    GameForm,
+                    MakeMoveForm,
+                    GameForms,
+                    GameForm2,
+                    RankingForm,
+                    RankingForms,
+                    move_GameForm)
 
 from utils import get_by_urlsafe, win_checker
 
 # ResourceContainer
-# If the request contains path or querystring arguments, you need to use ResourceContainer
+# If the request contains path or querystring arguments,
+# you need to use ResourceContainer
 
 # type in relevant infos for a Player
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
-    email=messages.StringField(2))
+                                           email=messages.StringField(2))
 
-# type in relevant infos 
+# type in relevant infos
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 
 # now you need the urlsafe_key
@@ -58,9 +69,6 @@ class tictactoeAPI(remote.Service):
         player.put()
         return StringMessage(message='Player {} created!'.format(
                 request.user_name))
-        """Old mit  prozent '%(d %(d' % (1, 2) --> ohne ( bei d
-           New '{} {}'.format(1, 2)
-           Also wird user_name aus request in die {} eingesetzt"""
 
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
@@ -74,12 +82,13 @@ class tictactoeAPI(remote.Service):
         if not (player1 and player2):
             raise endpoints.NotFoundException('No user with this name in the database')
         game = Game.new_game(player1.key, player2.key)
-        # player.key gives a specific entity from the kind (Player)and inputs this to new_game
+        # player.key gives a specific entity from the kind (Player)
+        # and inputs this to new_game
         return Game.to_form(game, 'Good luck playing TICTACTOE!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
-                      response_message=GameForm,
-                      path='game/{urlsafe_game_key}',
+                      response_message=move_GameForm,
+                      path='game/history/{urlsafe_game_key}',
                       name='get_game_history',
                       http_method='GET')
     def get_game_history(self, request):
@@ -94,55 +103,63 @@ class tictactoeAPI(remote.Service):
                                       'nameplayer2': game.player2.get().name,
                                       'emailplayer2': game.player2.get().email},
                               url='/tasks/cache_incomplete_games')
-            return game.to_form('Here we go. The history of the game')
+            return game.move_to_form('Here we go. The history of the game')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
-                      path='game/{urlsafe_game_key}',
+                      path='game/move/{urlsafe_game_key}',
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
         """Makes a move. Returns the current games state with message"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
-        if game.winner1:
-            return game.to_form('Game already over!')
-        if game.winner2:
-            return game.to_form('Game already over!')
+        if game.finished_status:
+            raise endpoints.ForbiddenException("Game already over")
         else:
             position = request.position
-            if position < 10 and position > 0:
-                if position not in game.moves:
-                    i = len(game.moves)
-                    if i % 2 == 0:
-                        game.player1_position.append(position)
-                        game.moves.append(position)
-                        game.available_positions[position-1] = 0
-                        game.put()
-                        still_available = len(game.moves)
-                        check = win_checker(game.player1_position)
-                        if check == "Player is the champ!":
-                            game.end_of_game(True, False)
-                            return game.to_form("Player1 is the best")
+            position_str = str(position)
+            if position_str.isdigit():
+                if position < 10 and position > 0:
+                    if position not in game.moves:
+                        i = len(game.moves)
+                        if i % 2 == 0:
+                            game.player1_position.append(position)
+                            game.moves.append(position)
+                            game.available_positions[position-1] = 0
+                            game.put()
+                            still_available = len(game.moves)
+                            check = win_checker(game.player1_position)
+                            if check == "Player is the champ!":
+                                game.end_of_game(True, False)
+                                game.put()
+                                return game.to_form("Player1 is the best")
+                            elif i+1 == 9:
+                                game.finished_status = True
+                                game.put()
+                                return game.to_form("Draw")
+                            else:
+                                return game.to_form(check)
                         else:
-                            return game.to_form(check)
+                            game.player2_position.append(position)
+                            game.moves.append(position)
+                            game.available_positions[position-1] = 0
+                            game.put()
+                            still_available = len(game.moves)
+                            check = win_checker(game.player2_position)
+                            if check == "Player is the champ!":
+                                game.end_of_game(False, True)
+                                game.put()
+                                return game.to_form("Player2 is the best")
+                            else:
+                                return game.to_form(check)
                     else:
-                        game.player2_position.append(position)
-                        game.moves.append(position)
-                        game.available_positions[position-1] = 0
-                        game.put()
-                        still_available = len(game.moves)
-                        check = win_checker(game.player2_position)
-                        if check == "Player is the champ!":
-                            game.end_of_game(False, True)
-                            return game.to_form("Player2 is the best")
-                        else:
-                            return game.to_form(check)
+                        raise endpoints.BadRequestException("Position is already taken")
                 else:
-                    raise endpoints.BadRequestException("Position is already taken")
+                    raise endpoints.BadRequestException("Position must be between 1 to 9")
             else:
-                raise endpoints.BadRequestException("Position must be between 1 to 9")
+                raise endpoints.ForbiddenException("Please type in a number")
 
     @endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=GameForms,
@@ -154,21 +171,22 @@ class tictactoeAPI(remote.Service):
         player = Player.query(Player.name == request.user_name).get()
         if not player:
             raise endpoints.BadRequestException('User not found!')
-        games = Game.query(ndb.OR(Game.player1 == player.key,
-                                  Game.player2 == player.key))
+        games = Game.query(ndb.AND(Game.finished_status == False,
+                                   ndb.OR(Game.player1 == player.key,
+                                          Game.player2 == player.key)))
         # Ancestor query hence the key
         return GameForms(items=[game.to_form_without_message() for game in games])
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=StringMessage,
-                      path='game/cancel_game',
-                      name='cancel_game',
-                      http_method='POST')
-    def cancel_game(self, request):
+                      path='game/delete_game',
+                      name='delete_game',
+                      http_method='DELETE')
+    def delete_game(self, request):
         """Via urlsafe_game_key you can delete in here"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            if game.moves < 9 or game.winner1 == False or game.winner2 == False:
+            if game.finished_status == False:
                 game.key.delete()
                 return StringMessage(message='Game with the following urlsafe key is deleted: {}'.format(request.urlsafe_game_key))
             else:
@@ -207,7 +225,7 @@ class tictactoeAPI(remote.Service):
                       name='get_user_rankings',
                       http_method='GET')
     def get_user_rankings(self, request):
-        """Returns Players in descending order. the one with
+        """Returns Players in descending order. The one with
         most wins is on the top"""
         rankings = Ranking.query().order(-Ranking.number_of_wins).fetch()
         return RankingForms(items=[ranking.to_form() for ranking in rankings])
