@@ -1,4 +1,4 @@
-Tic Tac Toe Version 1.0 created on 30.06.2016
+Tic Tac Toe Version 1.1 created on 10.08.2016
 
 General Usage
 This project includes the Backend for a 2 player game which is called Tic Tac Toe. Further information on the game: https://en.wikipedia.org/wiki/Tic-tac-toe
@@ -7,7 +7,8 @@ Table of contents
 
 Installing
 Quick start 
-What´s included? 
+What´s included?
+Which Endpoints are in tictactoe.py?
 Bugs and feature requests 
 Creators + Contact 
 License and Copyright
@@ -60,39 +61,94 @@ project4/
 
 If you run the Project in Google App Engine Launcher, you will auto-access all files.
 
+Instructions for playing the game
+
+This 2player game has 9 (3x3 grid) empty fields and in each round a player can mark in one of the spaces. The aim of this game is, to have 3 out of 9 fields in one order. It does not matter if the 3 field-order is
+diagonal, vertical or horizontal. For further infos please have a look at the following link: https://en.wikipedia.org/wiki/Tic-tac-toe
+
+
 Which Endpoints are in tictactoe.py?
- - **create_player**
-    - You just need to input name and email and then this endpoint returns the player
- - **new_game**
-    - checks if the 2 usernames are in the database, if this is the case,
-      the players' keys are passed to a new game (via the @classmethod new_game) (which creates an instance of the class Entity "Game")
-      and returns GameForm (which contains all relevant information + the urlsafe key)
- - **get_game_history**
-    - checks with the help of the urlsafe key if the entity is of the right kind and if this is the case, 
-      relevant information of a game are reflected. With the help of the properties moves, player1_position and
-      player2_position you can see exactly what has happened in the past rounds.
-    - if there is no winner/loser and the game did not finish tied, the endpoint adds a task to the task queue 
- - **make_move**
-    - here the user decides on a position.
-      We then check if there is already a winner, if this is not the case, the following will happen: 
-      if the desired value is between 1-9 and if the value is not already used by one of the players the user places her position there. 
-      Then the desired position is added to the properties moves, player1_position or player2_position and the value
-      in available_position cannot be selected anymore plus is set to 0.
-    - As soon as the position is placed by e.g. player1, the code checks if the list of player1_position matches any of the Tic Tac Toe winning combinations.
-      If there is a match, the Property of winner1 is set to True. Parallely, the Score is updated (and can be viewed via **get_user_wins**)
-    - as there is also the possibility of tie the following might happen: If the game has no winner, no setting is set to True which also means, no score is improved and no ranking position is changed. However, the game ends after 9 positions are placed.
- - **get_user_games**
-    - takes in a user name and, if there is a match in the database, returns a list of all relevant information for each game in which the user has participated
- - **cancel_game**
-    - if the urlsafe key is correct and the game is unfinished, you can delete the game from here
- - **get_users_wins**
-    - if player is in the database, all wins of a player are returned
-    - besides: By calling this endpoint, the player´s win count in the
-     Ranking becomes updated
- - **get_user_rankings**
-    - the Ranking is returned. The player with the most wins is on the top with his name and the number of wins.
- - **incomplete_games**
-    - returns the information from Memcache (which is: incomplete games)
+
+  create_player
+    Path: player
+    Method: POST
+    Parameters: user_name, email (optional)
+    Returns: Message confirming creation of the User.
+    Description: Creates a new User. user_name provided must be unique.
+    ConflictException: if a User with that user_name already exists.
+  
+  new_game
+    Path: game
+    Method: POST
+    Parameters: 2 x user_name
+    Returns: "Good Luck" - message + some further information about the new game: all the 9 available_positions, player1, player2, urlsafe_key, winner1, winner2 (both winners are set to false) and moves, player1_positions, player2_positions (will be important at a later point)
+    Description: Creates new game. User can type in his user_name as player1 and player2 in order to play against herself. You need to pass the urlsafe_key to many of the upcoming endpoints.
+    ConflictException: If user_name does not exist
+
+  get_game_history
+    Path: game/history/{urlsafe_game_key}
+    Method: GET
+    Parameters: ursafe_key
+    Returns: A message, the moves in chronological order and the information that the game is not over (finished_status), if at least one of the players has made a move. Furthermore, a task is added to the taskqueue (with the name, email of the game´s player)
+    Description: Verify the urlsafe_key and returns all the information which are currently important for this match
+    ConflictException: if game is finished or urlsafe_key does not exist
+
+   make_move
+    Path: game/move/{urlsafe_game_key}
+    Method: PUT
+    Parameters: urlsafe_key, position
+    Returns: the same as new_game. Here the returned value are the latest updated ones.
+    Description: After verifying the urlsafe key, the player can choose a position out of the 3x3 grid. This position appears then in moves and it is mentioned in player1_positions or player1_positions (depending on whos turn it is).
+    After player1 has made her move, it will be player2s turn until either one of the 2 players has 3 fields in an order or they draw.If there is a winner either winner1 or winner 2 and finished_status becomes True + the string mentiones which player is the winner and the game is finished otherwise the game has 9 rounds and there is no winner.
+    ConflictException: 
+    1) if there is a winner or draw, no positions can be selected 
+    2) if the value is not a digit
+    3) if the desired positon is not between 0-10, position can not be selected
+    4) if the posititon is already used in this game, position can not be selected
+
+  get_user_games
+    Path: game/get_user_games
+    Method: GET
+    Parameters: user_name
+    Returns: Similar to new_game and make_move. However, this time you can see a list of all the games in which currently the player is participating at (does not list finished games).
+    Description: Checks in player1 and playr2 if there has been a player with such a name.
+    ConflictException: If user is not in DB
+
+  delete_game
+    Path: game/delete_game
+    Method: DELETE
+    Parameters: urlsafe_key
+    Returns: String with the relevant urlsafe_key as confirmation that game has been deleted
+    Description: If the urlsafe key is correct and the game is unfinished, you can delete the game from here
+    ConflictException:
+    1) if urlsafe_key is wrong
+    2) if game is already finished
+
+  get_users_wins
+    Path: scores/player/get_users_wins
+    Method: GET
+    Parameters: user_name
+    Returns: String containing number of wins and name of the player
+    Description: if player is in the database, all wins of a player are returned
+    Besides: By calling this endpoint, the player´s win count in the
+    Ranking becomes updated
+    ConflictException: if user does not exist in DB
+
+  get_user_rankings
+    Path: scores/player/get_user_rankings
+    Method: GET
+    Parameters: -
+    Returns: list of all players who are in the ranking with their name and their number of wins. The player with the most wins is on the top with his name and the number of wins.
+    Description: If the get_users_wins endpoint is called then the data in get_user_rankings is updated. Why is this seperated? The user who just wants to play the game without appearing in the ranking list, can avoid this by not calling the get_user_wins endpoint. But this person has still the posibilty to check through the rankings in order to decide either to publish her wins or not.
+    ConflictException: -
+
+  incomplete_games 
+    Path: games/incomplete_games
+    Method: GET
+    Parameters: -
+    Returns: the information from Memcache (which is: incomplete games)
+    Description: Checks  
+    ConflictException:
 
 Bugs and feature requests
 I have not found any. If you do so, please contact me!
@@ -100,8 +156,6 @@ I have not found any. If you do so, please contact me!
 Creators + Contact
 Name: Nojan Nourbakhsh 
 Email: nojan@hotmail.de 
-Name: Udacity 
-Email: review-support@udacity.com
 
 Lisene and Copyright
-All rights reserved by Udacity Inc and Nojan Nourbakhsh. Category Item Project Version 1.0 and its use are subject to a license agreement and are also subject to copyright, trademark, patent and/or other laws. For further infos, please contact Nojan Nourbakhsh.
+All rights reserved by Nojan Nourbakhsh. Although some parts might origin from Udacity Inc, Nojan Nourbakhsh has the license to use, modify, copy, distribute these parts of the code. Category Item Project Version 1.0 and its use are subject to a license agreement and are also subject to copyright, trademark, patent and/or other laws. For further infos, please contact Nojan Nourbakhsh.
