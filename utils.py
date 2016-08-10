@@ -45,7 +45,7 @@ def get_by_urlsafe(urlsafe, model):
 
 def win_checker(win):
     """checks if the user is a winner of not"""
-    if set(win)==set([1,2,3]) or set(win)==set([1,5,9]) or set(win)==set([1,4,7]) or set(win)==set([2,5,8]) or set(win)==set([3,5,7]) or set(win)==set([3,6,9]) or set(win)==set([4,5,6]) or set(win)==set([7,8,9]):
+    if set(win).issuperset(set([1,2,3])) or set(win).issuperset(set([1,5,9])) or set(win).issuperset(set([1,4,7])) or set(win).issuperset(set([2,5,8])) or set(win).issuperset(set([3,5,7])) or set(win).issuperset(set([3,6,9])) or set(win).issuperset(set([4,5,6])) or set(win).issuperset(set([7,8,9])):
         return "Player is the champ!"
     else:
         return "Your current positions: {}!".format(win)
