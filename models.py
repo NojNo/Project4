@@ -14,9 +14,6 @@ class Player(ndb.Model):
     email = ndb.StringProperty()
 
 
-# what does stringmessage do
-# if I want to display a message like 'User {} created!' I need this class
-# stringMessage is amazing during testing!!!!!
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
@@ -32,6 +29,7 @@ class Game(ndb.Model):
     player1_position = ndb.IntegerProperty(repeated=True)
     player2_position = ndb.IntegerProperty(repeated=True)
     moves = ndb.IntegerProperty(repeated=True)
+    finished_status = ndb.BooleanProperty(required=True, default=False)
 
     @classmethod
     def new_game(cls, player1, player2):
@@ -43,7 +41,8 @@ class Game(ndb.Model):
                     available_positions=[1, 2, 3, 4, 5, 6, 7, 8, 9],
                     player1_position=[],
                     player2_position=[],
-                    moves=[])
+                    moves=[],
+                    finished_status=False)
         game.put()
         return game
 
@@ -62,6 +61,15 @@ class Game(ndb.Model):
         form.player1_position = self.player1_position
         form.player2_position = self.player2_position
         form.moves = self.moves
+        form.finished_status = self.finished_status
+        return form
+
+    def move_to_form(self, message):
+        """Returns a GameForm representation of the Game"""
+        form = move_GameForm()
+        form.message = message
+        form.moves = self.moves
+        form.finished_status = self.finished_status
         return form
 
     def to_form(self, message):
@@ -81,17 +89,20 @@ class Game(ndb.Model):
         form.player1_position = self.player1_position
         form.player2_position = self.player2_position
         form.moves = self.moves
+        form.finished_status = self.finished_status
         return form
 
     def end_of_game(self, player1_win=False, player2_win=False):
         """If there is a winner, end_of_game changes a property to true and
-        saves the score in a Score"""  
+        saves the score in a Score"""
         self.winner1 = player1_win
         self.winner2 = player2_win
         if player1_win:  # ==True
+            self.finished_status = True
             score = Score(player=self.player1, date=date.today())
             score.put()
         elif player2_win:  # ==True
+            self.finished_status = True
             score = Score(player=self.player2, date=date.today())
             score.put()
         else:
@@ -117,6 +128,14 @@ class GameForm(messages.Message):
     player1_position = messages.IntegerField(8, repeated=True)
     player2_position = messages.IntegerField(9, repeated=True)
     moves = messages.IntegerField(10, repeated=True)
+    finished_status = messages.BooleanField(11, required=True)
+
+
+class move_GameForm(messages.Message):
+    """GameForm for outbound details on the game"""
+    message = messages.StringField(1, required=True)
+    moves = messages.IntegerField(2, repeated=True)
+    finished_status = messages.BooleanField(3, required=True)
 
 
 class MakeMoveForm(messages.Message):
@@ -134,6 +153,7 @@ class GameForm2(messages.Message):
     player1_position = messages.IntegerField(6, repeated=True)
     player2_position = messages.IntegerField(7, repeated=True)
     moves = messages.IntegerField(8, repeated=True)
+    finished_status = messages.BooleanField(9, required=True)
 
 
 class GameForms(messages.Message):
